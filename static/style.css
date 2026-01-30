@@ -61,6 +61,18 @@ h5 { font-size: 1.1rem; }
     font-size: 1.25rem;
 }
 
+.navbar-logo {
+    height: 36px;
+    width: auto;
+    border-radius: 4px;
+}
+
+.login-logo {
+    height: 80px;
+    width: auto;
+    border-radius: 8px;
+}
+
 .nav-link {
     font-family: 'Nunito Sans', sans-serif;
     font-weight: 500;

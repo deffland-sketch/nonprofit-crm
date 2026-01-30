@@ -288,17 +288,15 @@ def dashboard():
     # Recent donations
     recent_donations = Donation.query.order_by(Donation.date.desc()).limit(5).all()
 
-    # Upcoming tasks
+    # Upcoming tasks (all users see all tasks)
     upcoming_tasks = Task.query.filter(
-        Task.completed == False,
-        Task.user_id == current_user.id
+        Task.completed == False
     ).order_by(Task.due_date.asc()).limit(5).all()
 
     # Overdue tasks count
     overdue_count = Task.query.filter(
         Task.completed == False,
-        Task.due_date < date.today(),
-        Task.user_id == current_user.id
+        Task.due_date < date.today()
     ).count()
 
     # Recent communications
@@ -552,7 +550,8 @@ def communications():
 def tasks():
     show_completed = request.args.get('show_completed', 'false') == 'true'
 
-    query = Task.query.filter_by(user_id=current_user.id)
+    # All users see all tasks
+    query = Task.query
 
     if not show_completed:
         query = query.filter_by(completed=False)
@@ -590,10 +589,6 @@ def new_task():
 @login_required
 def complete_task(task_id):
     task = Task.query.get_or_404(task_id)
-    if task.user_id != current_user.id:
-        flash('You can only complete your own tasks.', 'danger')
-        return redirect(url_for('tasks'))
-
     task.completed = True
     task.completed_at = datetime.utcnow()
     db.session.commit()
@@ -607,10 +602,6 @@ def complete_task(task_id):
 @login_required
 def delete_task(task_id):
     task = Task.query.get_or_404(task_id)
-    if task.user_id != current_user.id:
-        flash('You can only delete your own tasks.', 'danger')
-        return redirect(url_for('tasks'))
-
     db.session.delete(task)
     db.session.commit()
     flash('Task deleted.', 'info')
