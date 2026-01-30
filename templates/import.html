@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Import Data - Non-Profit CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Import Data</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-people me-2"></i>Import Donors</h5>
+            </div>
+            <div class="card-body">
+                <p>Import donor contact information from an Excel file.</p>
+                <p class="text-muted small">
+                    <strong>Required columns:</strong> First Name, Last Name<br>
+                    <strong>Optional columns:</strong> Email, Phone, Address, City, State, ZIP, Interests, Notes
+                </p>
+                <a href="{{ url_for('import_donors') }}" class="btn btn-primary">
+                    <i class="bi bi-upload me-1"></i>Import Donors
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-currency-dollar me-2"></i>Import Donations</h5>
+            </div>
+            <div class="card-body">
+                <p>Import historical donation records from an Excel file.</p>
+                <p class="text-muted small">
+                    <strong>Required columns:</strong> Amount, plus donor identification (Name or First/Last Name or Email)<br>
+                    <strong>Optional columns:</strong> Date, Type, Campaign, Notes
+                </p>
+                <a href="{{ url_for('import_donations') }}" class="btn btn-success">
+                    <i class="bi bi-upload me-1"></i>Import Donations
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Import Tips</h5>
+    </div>
+    <div class="card-body">
+        <ul class="mb-0">
+            <li><strong>Import donors first</strong> if you're importing both donors and donations</li>
+            <li>The first row of your Excel file should contain column headers</li>
+            <li>Duplicate donors (same name or email) will be skipped</li>
+            <li>Donations will automatically create donors if they don't exist</li>
+            <li>Supported date formats: YYYY-MM-DD or MM/DD/YYYY</li>
+            <li>Amount can include $ and commas (e.g., "$1,000.00")</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

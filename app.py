@@ -3,14 +3,18 @@ import csv
 import io
 from datetime import datetime, date, timedelta
 from functools import wraps
+from decimal import Decimal, InvalidOperation
 
 from flask import Flask, render_template, request, redirect, url_for, flash, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms import StringField, PasswordField, TextAreaField, DecimalField, DateField, SelectField, BooleanField
 from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange
+from openpyxl import load_workbook
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -189,6 +193,20 @@ class RelationshipForm(FlaskForm):
         ('friend', 'Friend'),
         ('board', 'Board Connection'),
         ('other', 'Other')
+    ])
+
+
+class ImportDonorsForm(FlaskForm):
+    file = FileField('Excel File', validators=[
+        FileRequired(),
+        FileAllowed(['xlsx', 'xls'], 'Excel files only (.xlsx, .xls)')
+    ])
+
+
+class ImportDonationsForm(FlaskForm):
+    file = FileField('Excel File', validators=[
+        FileRequired(),
+        FileAllowed(['xlsx', 'xls'], 'Excel files only (.xlsx, .xls)')
     ])
 
 
@@ -739,6 +757,282 @@ def export_donations():
         mimetype='text/csv',
         headers={'Content-Disposition': f'attachment;filename=donations_{date.today()}.csv'}
     )
+
+
+# =============================================================================
+# IMPORTS
+# =============================================================================
+
+@app.route('/import')
+@login_required
+def import_data():
+    return render_template('import.html')
+
+
+@app.route('/import/donors', methods=['GET', 'POST'])
+@login_required
+def import_donors():
+    form = ImportDonorsForm()
+
+    if form.validate_on_submit():
+        file = form.file.data
+        try:
+            wb = load_workbook(filename=io.BytesIO(file.read()))
+            ws = wb.active
+
+            # Get headers from first row
+            headers = [cell.value.lower().strip() if cell.value else '' for cell in ws[1]]
+
+            # Map common column name variations
+            column_map = {
+                'first_name': ['first name', 'first', 'firstname', 'first_name'],
+                'last_name': ['last name', 'last', 'lastname', 'last_name', 'surname'],
+                'email': ['email', 'e-mail', 'email address'],
+                'phone': ['phone', 'telephone', 'phone number', 'tel'],
+                'address': ['address', 'street', 'street address', 'address1'],
+                'city': ['city', 'town'],
+                'state': ['state', 'province', 'region'],
+                'zip_code': ['zip', 'zip code', 'zipcode', 'postal', 'postal code'],
+                'interests': ['interests', 'interest', 'areas of interest'],
+                'notes': ['notes', 'note', 'comments', 'comment']
+            }
+
+            # Find column indices
+            col_indices = {}
+            for field, variations in column_map.items():
+                for i, header in enumerate(headers):
+                    if header in variations:
+                        col_indices[field] = i
+                        break
+
+            # Check required columns
+            if 'first_name' not in col_indices or 'last_name' not in col_indices:
+                flash('Excel file must have "First Name" and "Last Name" columns.', 'danger')
+                return render_template('import_donors.html', form=form)
+
+            # Import rows
+            imported = 0
+            skipped = 0
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                first_name = row[col_indices['first_name']] if col_indices.get('first_name') is not None else None
+                last_name = row[col_indices['last_name']] if col_indices.get('last_name') is not None else None
+
+                # Skip empty rows
+                if not first_name or not last_name:
+                    skipped += 1
+                    continue
+
+                # Check for existing donor by name and email
+                email = row[col_indices['email']] if col_indices.get('email') is not None else None
+                existing = None
+                if email:
+                    existing = Donor.query.filter_by(email=email).first()
+                if not existing:
+                    existing = Donor.query.filter_by(
+                        first_name=str(first_name).strip(),
+                        last_name=str(last_name).strip()
+                    ).first()
+
+                if existing:
+                    skipped += 1
+                    continue
+
+                donor = Donor(
+                    first_name=str(first_name).strip(),
+                    last_name=str(last_name).strip(),
+                    email=str(email).strip() if email else None,
+                    phone=str(row[col_indices['phone']]).strip() if col_indices.get('phone') is not None and row[col_indices['phone']] else None,
+                    address=str(row[col_indices['address']]).strip() if col_indices.get('address') is not None and row[col_indices['address']] else None,
+                    city=str(row[col_indices['city']]).strip() if col_indices.get('city') is not None and row[col_indices['city']] else None,
+                    state=str(row[col_indices['state']]).strip() if col_indices.get('state') is not None and row[col_indices['state']] else None,
+                    zip_code=str(row[col_indices['zip_code']]).strip() if col_indices.get('zip_code') is not None and row[col_indices['zip_code']] else None,
+                    interests=str(row[col_indices['interests']]).strip() if col_indices.get('interests') is not None and row[col_indices['interests']] else None,
+                    notes=str(row[col_indices['notes']]).strip() if col_indices.get('notes') is not None and row[col_indices['notes']] else None
+                )
+                db.session.add(donor)
+                imported += 1
+
+            db.session.commit()
+            flash(f'Successfully imported {imported} donors. Skipped {skipped} rows (empty or duplicates).', 'success')
+            return redirect(url_for('donors'))
+
+        except Exception as e:
+            flash(f'Error reading file: {str(e)}', 'danger')
+
+    return render_template('import_donors.html', form=form)
+
+
+@app.route('/import/donations', methods=['GET', 'POST'])
+@login_required
+def import_donations():
+    form = ImportDonationsForm()
+
+    if form.validate_on_submit():
+        file = form.file.data
+        try:
+            wb = load_workbook(filename=io.BytesIO(file.read()))
+            ws = wb.active
+
+            # Get headers from first row
+            headers = [cell.value.lower().strip() if cell.value else '' for cell in ws[1]]
+
+            # Map common column name variations
+            column_map = {
+                'donor_name': ['donor', 'donor name', 'name', 'full name', 'fullname'],
+                'first_name': ['first name', 'first', 'firstname'],
+                'last_name': ['last name', 'last', 'lastname', 'surname'],
+                'email': ['email', 'e-mail', 'donor email'],
+                'amount': ['amount', 'donation', 'gift', 'donation amount', 'gift amount', '$'],
+                'date': ['date', 'donation date', 'gift date', 'received date'],
+                'type': ['type', 'donation type', 'gift type', 'payment type'],
+                'campaign': ['campaign', 'fund', 'appeal', 'designation'],
+                'notes': ['notes', 'note', 'comments', 'memo']
+            }
+
+            # Find column indices
+            col_indices = {}
+            for field, variations in column_map.items():
+                for i, header in enumerate(headers):
+                    if header in variations:
+                        col_indices[field] = i
+                        break
+
+            # Check required columns
+            if 'amount' not in col_indices:
+                flash('Excel file must have an "Amount" column.', 'danger')
+                return render_template('import_donations.html', form=form)
+
+            has_donor_name = 'donor_name' in col_indices
+            has_split_name = 'first_name' in col_indices and 'last_name' in col_indices
+            has_email = 'email' in col_indices
+
+            if not has_donor_name and not has_split_name and not has_email:
+                flash('Excel file must have donor identification (Name, First/Last Name, or Email).', 'danger')
+                return render_template('import_donations.html', form=form)
+
+            # Import rows
+            imported = 0
+            skipped = 0
+            errors = []
+
+            for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+                try:
+                    # Parse amount
+                    amount_val = row[col_indices['amount']] if col_indices.get('amount') is not None else None
+                    if not amount_val:
+                        skipped += 1
+                        continue
+
+                    # Handle amount formatting (remove $, commas, etc.)
+                    if isinstance(amount_val, str):
+                        amount_val = amount_val.replace('$', '').replace(',', '').strip()
+                    try:
+                        amount = Decimal(str(amount_val))
+                    except InvalidOperation:
+                        errors.append(f'Row {row_num}: Invalid amount "{amount_val}"')
+                        continue
+
+                    # Find donor
+                    donor = None
+
+                    # Try email first
+                    if has_email and row[col_indices['email']]:
+                        email = str(row[col_indices['email']]).strip()
+                        donor = Donor.query.filter_by(email=email).first()
+
+                    # Try full name
+                    if not donor and has_donor_name and row[col_indices['donor_name']]:
+                        full_name = str(row[col_indices['donor_name']]).strip()
+                        parts = full_name.split(None, 1)
+                        if len(parts) >= 2:
+                            donor = Donor.query.filter_by(first_name=parts[0], last_name=parts[1]).first()
+                        elif len(parts) == 1:
+                            donor = Donor.query.filter_by(last_name=parts[0]).first()
+
+                    # Try split name
+                    if not donor and has_split_name:
+                        first = row[col_indices['first_name']]
+                        last = row[col_indices['last_name']]
+                        if first and last:
+                            donor = Donor.query.filter_by(
+                                first_name=str(first).strip(),
+                                last_name=str(last).strip()
+                            ).first()
+
+                    if not donor:
+                        # Create donor if we have enough info
+                        if has_split_name and row[col_indices['first_name']] and row[col_indices['last_name']]:
+                            donor = Donor(
+                                first_name=str(row[col_indices['first_name']]).strip(),
+                                last_name=str(row[col_indices['last_name']]).strip(),
+                                email=str(row[col_indices['email']]).strip() if has_email and row[col_indices['email']] else None
+                            )
+                            db.session.add(donor)
+                            db.session.flush()  # Get the ID
+                        elif has_donor_name and row[col_indices['donor_name']]:
+                            full_name = str(row[col_indices['donor_name']]).strip()
+                            parts = full_name.split(None, 1)
+                            donor = Donor(
+                                first_name=parts[0] if parts else 'Unknown',
+                                last_name=parts[1] if len(parts) > 1 else 'Donor',
+                                email=str(row[col_indices['email']]).strip() if has_email and row[col_indices['email']] else None
+                            )
+                            db.session.add(donor)
+                            db.session.flush()
+                        else:
+                            errors.append(f'Row {row_num}: Could not identify donor')
+                            continue
+
+                    # Parse date
+                    date_val = row[col_indices['date']] if col_indices.get('date') is not None else None
+                    donation_date = date.today()
+                    if date_val:
+                        if isinstance(date_val, datetime):
+                            donation_date = date_val.date()
+                        elif isinstance(date_val, date):
+                            donation_date = date_val
+                        else:
+                            try:
+                                donation_date = datetime.strptime(str(date_val).strip(), '%Y-%m-%d').date()
+                            except ValueError:
+                                try:
+                                    donation_date = datetime.strptime(str(date_val).strip(), '%m/%d/%Y').date()
+                                except ValueError:
+                                    pass  # Use today's date
+
+                    donation = Donation(
+                        donor_id=donor.id,
+                        amount=amount,
+                        date=donation_date,
+                        donation_type=str(row[col_indices['type']]).strip().lower() if col_indices.get('type') is not None and row[col_indices['type']] else 'one-time',
+                        campaign=str(row[col_indices['campaign']]).strip() if col_indices.get('campaign') is not None and row[col_indices['campaign']] else None,
+                        notes=str(row[col_indices['notes']]).strip() if col_indices.get('notes') is not None and row[col_indices['notes']] else None
+                    )
+                    db.session.add(donation)
+                    imported += 1
+
+                except Exception as e:
+                    errors.append(f'Row {row_num}: {str(e)}')
+
+            db.session.commit()
+
+            msg = f'Successfully imported {imported} donations.'
+            if skipped:
+                msg += f' Skipped {skipped} empty rows.'
+            if errors:
+                msg += f' {len(errors)} errors.'
+            flash(msg, 'success' if imported > 0 else 'warning')
+
+            if errors and len(errors) <= 10:
+                for err in errors:
+                    flash(err, 'warning')
+
+            return redirect(url_for('donations'))
+
+        except Exception as e:
+            flash(f'Error reading file: {str(e)}', 'danger')
+
+    return render_template('import_donations.html', form=form)
 
 
 # =============================================================================

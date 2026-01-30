@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Import Donations - Non-Profit CRM{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <a href="{{ url_for('import_data') }}" class="text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Import
+                </a>
+                <h1 class="mt-2 mb-0">Import Donations</h1>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-upload me-2"></i>Upload Excel File</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label">Excel File (.xlsx)</label>
+                        {{ form.file(class="form-control", accept=".xlsx,.xls") }}
+                        {% if form.file.errors %}
+                            <div class="text-danger small">{{ form.file.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-upload me-1"></i>Import Donations
+                        </button>
+                        <a href="{{ url_for('import_data') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-table me-2"></i>Expected Format</h5>
+            </div>
+            <div class="card-body">
+                <p>Your Excel file should have a header row with the following columns:</p>
+
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Column</th>
+                                <th>Required</th>
+                                <th>Accepted Names</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Amount</td>
+                                <td><span class="badge bg-danger">Required</span></td>
+                                <td>Amount, Donation, Gift, Donation Amount</td>
+                            </tr>
+                            <tr>
+                                <td>Donor Name</td>
+                                <td><span class="badge bg-warning text-dark">One Required*</span></td>
+                                <td>Donor, Donor Name, Name, Full Name</td>
+                            </tr>
+                            <tr>
+                                <td>First Name</td>
+                                <td><span class="badge bg-warning text-dark">One Required*</span></td>
+                                <td>First Name, First, FirstName</td>
+                            </tr>
+                            <tr>
+                                <td>Last Name</td>
+                                <td><span class="badge bg-warning text-dark">One Required*</span></td>
+                                <td>Last Name, Last, LastName</td>
+                            </tr>
+                            <tr>
+                                <td>Email</td>
+                                <td><span class="badge bg-warning text-dark">One Required*</span></td>
+                                <td>Email, E-mail, Donor Email</td>
+                            </tr>
+                            <tr>
+                                <td>Date</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                                <td>Date, Donation Date, Gift Date, Received Date</td>
+                            </tr>
+                            <tr>
+                                <td>Type</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                                <td>Type, Donation Type, Gift Type, Payment Type</td>
+                            </tr>
+                            <tr>
+                                <td>Campaign</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                                <td>Campaign, Fund, Appeal, Designation</td>
+                            </tr>
+                            <tr>
+                                <td>Notes</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                                <td>Notes, Note, Comments, Memo</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="text-muted small">
+                    *At least one donor identifier is required: Full Name, First+Last Name, or Email
+                </p>
+
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Tips:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>If a donor doesn't exist, they will be created automatically</li>
+                        <li>Amounts can include $ signs and commas (e.g., "$1,500.00")</li>
+                        <li>Dates can be YYYY-MM-DD or MM/DD/YYYY format</li>
+                        <li>Import donors first if you have a separate donor list</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
