@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Non-Profit CRM{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>{{ title }}</h1>
+            <a href="{{ url_for('donors') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Donors
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name *</label>
+                            {{ form.first_name(class="form-control") }}
+                            {% if form.first_name.errors %}
+                                <div class="text-danger small">{{ form.first_name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name *</label>
+                            {{ form.last_name(class="form-control") }}
+                            {% if form.last_name.errors %}
+                                <div class="text-danger small">{{ form.last_name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            {{ form.email(class="form-control", placeholder="donor@example.com") }}
+                            {% if form.email.errors %}
+                                <div class="text-danger small">{{ form.email.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone</label>
+                            {{ form.phone(class="form-control", placeholder="(555) 123-4567") }}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="mb-3">Address</h5>
+
+                    <div class="mb-3">
+                        <label class="form-label">Street Address</label>
+                        {{ form.address(class="form-control", placeholder="123 Main Street") }}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label">City</label>
+                            {{ form.city(class="form-control") }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">State</label>
+                            {{ form.state(class="form-control") }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">ZIP Code</label>
+                            {{ form.zip_code(class="form-control") }}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="mb-3">Additional Information</h5>
+
+                    <div class="mb-3">
+                        <label class="form-label">Interests</label>
+                        {{ form.interests(class="form-control", rows="2", placeholder="What causes or programs interest this donor?") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        {{ form.notes(class="form-control", rows="3", placeholder="Any additional notes about this donor...") }}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Save Donor
+                        </button>
+                        <a href="{{ url_for('donors') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

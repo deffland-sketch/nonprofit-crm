@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Communications - Non-Profit CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Communications</h1>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if communications.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Donor</th>
+                        <th>Type</th>
+                        <th>Subject</th>
+                        <th>Notes</th>
+                        <th>Logged By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comm in communications.items %}
+                    <tr>
+                        <td>{{ comm.date.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <a href="{{ url_for('view_donor', donor_id=comm.donor_id) }}">
+                                {{ comm.donor.full_name }}
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge
+                                {% if comm.comm_type == 'email' %}bg-primary
+                                {% elif comm.comm_type == 'phone' %}bg-success
+                                {% elif comm.comm_type == 'meeting' %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                {{ comm.comm_type }}
+                            </span>
+                        </td>
+                        <td>{{ comm.subject or '-' }}</td>
+                        <td>{{ (comm.notes[:40] + '...') if comm.notes and comm.notes|length > 40 else (comm.notes or '-') }}</td>
+                        <td>{{ comm.logged_by.name }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if communications.pages > 1 %}
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                {% if communications.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('communications', page=communications.prev_num) }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for page_num in communications.iter_pages() %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == communications.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('communications', page=page_num) }}">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if communications.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('communications', page=communications.next_num) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-chat-dots text-muted" style="font-size: 4rem;"></i>
+            <h5 class="mt-3">No communications logged</h5>
+            <p class="text-muted">Log communications from individual donor profiles.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Add Task - Non-Profit CRM{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Add Task</h1>
+            <a href="{{ url_for('tasks') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Tasks
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label">Description *</label>
+                        {{ form.description(class="form-control", placeholder="What needs to be done?") }}
+                        {% if form.description.errors %}
+                            <div class="text-danger small">{{ form.description.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Due Date</label>
+                            {{ form.due_date(class="form-control") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Related Donor</label>
+                            {{ form.donor_id(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Create Task
+                        </button>
+                        <a href="{{ url_for('tasks') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}{{ donor.full_name }} - Non-Profit CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{{ url_for('donors') }}" class="text-decoration-none">
+            <i class="bi bi-arrow-left me-1"></i>Back to Donors
+        </a>
+        <h1 class="mt-2 mb-0">{{ donor.full_name }}</h1>
+    </div>
+    <div>
+        <a href="{{ url_for('edit_donor', donor_id=donor.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+        <form action="{{ url_for('delete_donor', donor_id=donor.id) }}" method="POST" class="d-inline"
+              onsubmit="return confirm('Are you sure you want to delete this donor? This will also delete all their donations, communications, and tasks.')">
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-trash me-1"></i>Delete
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column - Donor Info -->
+    <div class="col-lg-4 mb-4">
+        <!-- Contact Info -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person me-2"></i>Contact Information</h5>
+            </div>
+            <div class="card-body">
+                {% if donor.email %}
+                <p class="mb-2">
+                    <i class="bi bi-envelope text-muted me-2"></i>
+                    <a href="mailto:{{ donor.email }}">{{ donor.email }}</a>
+                </p>
+                {% endif %}
+
+                {% if donor.phone %}
+                <p class="mb-2">
+                    <i class="bi bi-telephone text-muted me-2"></i>
+                    <a href="tel:{{ donor.phone }}">{{ donor.phone }}</a>
+                </p>
+                {% endif %}
+
+                {% if donor.address or donor.city %}
+                <p class="mb-0">
+                    <i class="bi bi-geo-alt text-muted me-2"></i>
+                    {% if donor.address %}{{ donor.address }}<br>{% endif %}
+                    {% if donor.city %}{{ donor.city }}{% if donor.state %}, {{ donor.state }}{% endif %} {{ donor.zip_code or '' }}{% endif %}
+                </p>
+                {% endif %}
+
+                {% if not donor.email and not donor.phone and not donor.address %}
+                <p class="text-muted mb-0">No contact information available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Giving Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Giving Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h3 class="text-success mb-0">${{ "{:,.2f}".format(donor.total_donated) }}</h3>
+                        <small class="text-muted">Total Donated</small>
+                    </div>
+                    <div class="col-6">
+                        <h3 class="mb-0">{{ donations|length }}</h3>
+                        <small class="text-muted">Donations</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interests & Notes -->
+        {% if donor.interests or donor.notes %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-journal-text me-2"></i>About</h5>
+            </div>
+            <div class="card-body">
+                {% if donor.interests %}
+                <h6>Interests</h6>
+                <p>{{ donor.interests }}</p>
+                {% endif %}
+
+                {% if donor.notes %}
+                <h6>Notes</h6>
+                <p class="mb-0">{{ donor.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Relationships -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-people me-2"></i>Relationships</h5>
+                <a href="{{ url_for('new_relationship', donor_id=donor.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-plus"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                {% if relationships %}
+                <ul class="list-group list-group-flush">
+                    {% for rel in relationships %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        {% if rel.donor_id == donor.id %}
+                        <a href="{{ url_for('view_donor', donor_id=rel.related_donor_id) }}">{{ rel.related_donor.full_name }}</a>
+                        {% else %}
+                        <a href="{{ url_for('view_donor', donor_id=rel.donor_id) }}">{{ rel.donor.full_name }}</a>
+                        {% endif %}
+                        <span class="badge bg-secondary">{{ rel.relationship_type }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">No relationships recorded.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column - Activity -->
+    <div class="col-lg-8">
+        <!-- Quick Actions -->
+        <div class="d-flex gap-2 mb-4">
+            <a href="{{ url_for('new_donation', donor_id=donor.id) }}" class="btn btn-success">
+                <i class="bi bi-plus-lg me-1"></i>Record Donation
+            </a>
+            <a href="{{ url_for('new_communication', donor_id=donor.id) }}" class="btn btn-primary">
+                <i class="bi bi-chat-dots me-1"></i>Log Communication
+            </a>
+        </div>
+
+        <!-- Donations -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-currency-dollar me-2"></i>Donation History</h5>
+            </div>
+            <div class="card-body">
+                {% if donations %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Type</th>
+                                <th>Campaign</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for donation in donations %}
+                            <tr>
+                                <td>{{ donation.date.strftime('%b %d, %Y') }}</td>
+                                <td class="fw-bold text-success">${{ "{:,.2f}".format(donation.amount) }}</td>
+                                <td><span class="badge bg-secondary">{{ donation.donation_type or 'one-time' }}</span></td>
+                                <td>{{ donation.campaign or '-' }}</td>
+                                <td>
+                                    <form action="{{ url_for('delete_donation', donation_id=donation.id) }}" method="POST" class="d-inline"
+                                          onsubmit="return confirm('Delete this donation?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No donations recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Communications -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Communication Log</h5>
+            </div>
+            <div class="card-body">
+                {% if communications %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Subject</th>
+                                <th>Notes</th>
+                                <th>By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for comm in communications %}
+                            <tr>
+                                <td>{{ comm.date.strftime('%b %d, %Y') }}</td>
+                                <td><span class="badge bg-info">{{ comm.comm_type }}</span></td>
+                                <td>{{ comm.subject or '-' }}</td>
+                                <td>{{ (comm.notes[:50] + '...') if comm.notes and comm.notes|length > 50 else (comm.notes or '-') }}</td>
+                                <td>{{ comm.logged_by.name }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No communications logged yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tasks -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-check2-square me-2"></i>Open Tasks</h5>
+            </div>
+            <div class="card-body">
+                {% if tasks %}
+                <ul class="list-group list-group-flush">
+                    {% for task in tasks %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            {{ task.description }}
+                            {% if task.due_date %}
+                            <br><small class="text-muted">Due: {{ task.due_date.strftime('%b %d, %Y') }}</small>
+                            {% endif %}
+                        </div>
+                        <form action="{{ url_for('complete_task', task_id=task.id) }}" method="POST">
+                            <button type="submit" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-check"></i> Complete
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">No open tasks for this donor.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

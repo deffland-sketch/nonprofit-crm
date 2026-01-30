@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks - Non-Profit CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>My Tasks</h1>
+    <a href="{{ url_for('new_task') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Add Task
+    </a>
+</div>
+
+<!-- Filter -->
+<div class="mb-4">
+    <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="showCompleted"
+               {% if show_completed %}checked{% endif %}
+               onchange="window.location.href='{{ url_for('tasks') }}?show_completed=' + (this.checked ? 'true' : 'false')">
+        <label class="form-check-label" for="showCompleted">Show completed tasks</label>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if tasks %}
+        <div class="list-group list-group-flush">
+            {% for task in tasks %}
+            <div class="list-group-item d-flex justify-content-between align-items-start {% if task.completed %}text-muted{% endif %}">
+                <div class="me-3">
+                    {% if task.completed %}
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    {% else %}
+                    <i class="bi bi-circle text-muted"></i>
+                    {% endif %}
+                </div>
+                <div class="flex-grow-1">
+                    <div class="{% if task.completed %}text-decoration-line-through{% endif %}">
+                        {{ task.description }}
+                    </div>
+                    <small class="text-muted">
+                        {% if task.donor %}
+                        <a href="{{ url_for('view_donor', donor_id=task.donor_id) }}">{{ task.donor.full_name }}</a> &bull;
+                        {% endif %}
+                        {% if task.due_date %}
+                            {% if task.completed %}
+                            Completed {{ task.completed_at.strftime('%b %d') }}
+                            {% elif task.due_date < today %}
+                            <span class="text-danger">Overdue: {{ task.due_date.strftime('%b %d, %Y') }}</span>
+                            {% elif task.due_date == today %}
+                            <span class="text-warning">Due today</span>
+                            {% else %}
+                            Due {{ task.due_date.strftime('%b %d, %Y') }}
+                            {% endif %}
+                        {% endif %}
+                    </small>
+                </div>
+                <div>
+                    {% if not task.completed %}
+                    <form action="{{ url_for('complete_task', task_id=task.id) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-success" title="Mark complete">
+                            <i class="bi bi-check"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                    <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST" class="d-inline"
+                          onsubmit="return confirm('Delete this task?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-check2-circle text-muted" style="font-size: 4rem;"></i>
+            <h5 class="mt-3">
+                {% if show_completed %}
+                No tasks found
+                {% else %}
+                All caught up!
+                {% endif %}
+            </h5>
+            <p class="text-muted">
+                {% if not show_completed %}
+                You have no pending tasks.
+                {% endif %}
+            </p>
+            <a href="{{ url_for('new_task') }}" class="btn btn-primary">Add Task</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

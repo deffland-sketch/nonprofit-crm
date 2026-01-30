@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Non-Profit CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Reports</h1>
+    <div>
+        <a href="{{ url_for('export_donors') }}" class="btn btn-outline-primary me-2">
+            <i class="bi bi-download me-1"></i>Export Donors
+        </a>
+        <a href="{{ url_for('export_donations') }}" class="btn btn-outline-primary">
+            <i class="bi bi-download me-1"></i>Export Donations
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Yearly Summary -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Donations by Year</h5>
+            </div>
+            <div class="card-body">
+                {% if yearly_totals %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Year</th>
+                                <th class="text-end">Donations</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for year, total, count in yearly_totals %}
+                            <tr>
+                                <td>{{ year }}</td>
+                                <td class="text-end">{{ count }}</td>
+                                <td class="text-end fw-bold text-success">${{ "{:,.2f}".format(total) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No donation data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Campaign Summary -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bullseye me-2"></i>Donations by Campaign</h5>
+            </div>
+            <div class="card-body">
+                {% if campaign_totals %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Campaign</th>
+                                <th class="text-end">Donations</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for campaign, total, count in campaign_totals %}
+                            <tr>
+                                <td>{{ campaign }}</td>
+                                <td class="text-end">{{ count }}</td>
+                                <td class="text-end fw-bold text-success">${{ "{:,.2f}".format(total) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No campaign data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Top Donors -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-trophy me-2"></i>Top Donors</h5>
+            </div>
+            <div class="card-body">
+                {% if top_donors %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Donor</th>
+                                <th class="text-end">Total Donated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for donor, total in top_donors %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <a href="{{ url_for('view_donor', donor_id=donor.id) }}">
+                                        {{ donor.full_name }}
+                                    </a>
+                                </td>
+                                <td class="text-end fw-bold text-success">${{ "{:,.2f}".format(total) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No donation data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Donation Types -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Donations by Type</h5>
+            </div>
+            <div class="card-body">
+                {% if type_totals %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th class="text-end">Count</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dtype, total, count in type_totals %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-secondary">{{ dtype or 'one-time' }}</span>
+                                </td>
+                                <td class="text-end">{{ count }}</td>
+                                <td class="text-end fw-bold text-success">${{ "{:,.2f}".format(total) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No donation data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

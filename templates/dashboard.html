@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Non-Profit CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Dashboard</h1>
+    <a href="{{ url_for('new_donor') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Add Donor
+    </a>
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-1 text-white-50">Total Donors</h6>
+                        <h2 class="card-title mb-0">{{ total_donors }}</h2>
+                    </div>
+                    <i class="bi bi-people" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-1 text-white-50">Total Raised</h6>
+                        <h2 class="card-title mb-0">${{ "{:,.2f}".format(total_donations) }}</h2>
+                    </div>
+                    <i class="bi bi-cash-stack" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-1 text-white-50">YTD Donations</h6>
+                        <h2 class="card-title mb-0">${{ "{:,.2f}".format(ytd_donations) }}</h2>
+                    </div>
+                    <i class="bi bi-graph-up" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-1 text-dark-50">New This Month</h6>
+                        <h2 class="card-title mb-0">{{ new_donors_month }}</h2>
+                    </div>
+                    <i class="bi bi-person-plus" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Donations -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-currency-dollar me-2"></i>Recent Donations</h5>
+                <a href="{{ url_for('donations') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_donations %}
+                <div class="list-group list-group-flush">
+                    {% for donation in recent_donations %}
+                    <a href="{{ url_for('view_donor', donor_id=donation.donor_id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ donation.donor.full_name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ donation.date.strftime('%b %d, %Y') }}{% if donation.campaign %} - {{ donation.campaign }}{% endif %}</small>
+                        </div>
+                        <span class="badge bg-success rounded-pill">${{ "{:,.2f}".format(donation.amount) }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No donations recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Tasks -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-check2-square me-2"></i>My Tasks
+                    {% if overdue_count > 0 %}
+                    <span class="badge bg-danger ms-2">{{ overdue_count }} overdue</span>
+                    {% endif %}
+                </h5>
+                <a href="{{ url_for('new_task') }}" class="btn btn-sm btn-outline-primary">Add Task</a>
+            </div>
+            <div class="card-body">
+                {% if upcoming_tasks %}
+                <div class="list-group list-group-flush">
+                    {% for task in upcoming_tasks %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            {{ task.description }}
+                            {% if task.donor %}
+                            <br><small class="text-muted">
+                                <a href="{{ url_for('view_donor', donor_id=task.donor_id) }}">{{ task.donor.full_name }}</a>
+                            </small>
+                            {% endif %}
+                        </div>
+                        <div class="text-end">
+                            {% if task.due_date %}
+                                {% if task.due_date < today %}
+                                <span class="badge bg-danger">{{ task.due_date.strftime('%b %d') }}</span>
+                                {% elif task.due_date == today %}
+                                <span class="badge bg-warning text-dark">Today</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ task.due_date.strftime('%b %d') }}</span>
+                                {% endif %}
+                            {% endif %}
+                            <form action="{{ url_for('complete_task', task_id=task.id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-success ms-2" title="Mark complete">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No pending tasks. Great work!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Communications -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Recent Communications</h5>
+                <a href="{{ url_for('communications') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_comms %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Donor</th>
+                                <th>Type</th>
+                                <th>Subject</th>
+                                <th>Logged By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for comm in recent_comms %}
+                            <tr>
+                                <td>{{ comm.date.strftime('%b %d, %Y') }}</td>
+                                <td><a href="{{ url_for('view_donor', donor_id=comm.donor_id) }}">{{ comm.donor.full_name }}</a></td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ comm.comm_type }}</span>
+                                </td>
+                                <td>{{ comm.subject or '-' }}</td>
+                                <td>{{ comm.logged_by.name }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No communications logged yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
