@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Resend Confirmation - WA Charters CRM{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <img src="https://wacharters.org/wp-content/uploads/2024/02/Yoast_site_logo.jpg" alt="WA Charters" class="login-logo mb-3">
+                    <h2>Resend Confirmation</h2>
+                    <p class="text-muted">Enter your email to receive a new confirmation link</p>
+                </div>
+
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        {{ form.email(class="form-control", placeholder="you@wacharters.org") }}
+                        {% if form.email.errors %}
+                            <div class="text-danger small">{{ form.email.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mb-3">Send Confirmation Link</button>
+                </form>
+
+                <hr>
+
+                <p class="text-center mb-0">
+                    Already confirmed? <a href="{{ url_for('login') }}">Sign in here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

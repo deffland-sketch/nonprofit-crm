@@ -196,6 +196,8 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(20), default=ROLE_VIEWER, nullable=False)
+    email_confirmed = db.Column(db.Boolean, default=False, nullable=False)
+    email_confirmed_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     communications = db.relationship('Communication', backref='logged_by', lazy='dynamic')
@@ -444,6 +446,10 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data.lower()).first()
         if user and user.check_password(form.password.data):
+            if not user.email_confirmed:
+                AuditLog.log('login_unconfirmed', 'user', user.id, f'Login attempt with unconfirmed email: {user.email}')
+                flash('Please confirm your email address before logging in. Check your inbox for the confirmation link.', 'warning')
+                return render_template('login.html', form=form)
             login_user(user)
             AuditLog.log('login', 'user', user.id, f'User {user.email} logged in')
             next_page = request.args.get('next')
@@ -471,18 +477,117 @@ def register():
             user = User(
                 name=form.name.data,
                 email=form.email.data.lower(),
-                role=User.ROLE_ADMIN if is_first_user else User.ROLE_VIEWER
+                role=User.ROLE_ADMIN if is_first_user else User.ROLE_VIEWER,
+                email_confirmed=False
             )
             user.set_password(form.password.data)
             db.session.add(user)
             db.session.commit()
-            if is_first_user:
-                flash('Account created as Admin! Please log in.', 'success')
-            else:
-                flash('Account created! Please log in. An admin can upgrade your role.', 'success')
+
+            # Send confirmation email
+            try:
+                serializer = get_serializer()
+                token = serializer.dumps(user.email, salt='email-confirm')
+                confirm_url = url_for('confirm_email', token=token, _external=True)
+
+                msg = Message(
+                    'Confirm Your Email - WA Charters CRM',
+                    recipients=[user.email]
+                )
+                msg.body = f'''Hello {user.name},
+
+Thank you for registering with WA Charters CRM!
+
+Please click the link below to confirm your email address (valid for 24 hours):
+{confirm_url}
+
+If you did not create this account, please ignore this email.
+
+- WA Charters CRM Team
+'''
+                mail.send(msg)
+                AuditLog.log('register', 'user', user.id, f'User registered, confirmation email sent to {user.email}')
+                flash('Account created! Please check your email to confirm your address before logging in.', 'success')
+            except Exception as e:
+                # If email fails, still allow registration but log the error
+                AuditLog.log('register_email_failed', 'user', user.id, f'Failed to send confirmation email: {str(e)}')
+                flash('Account created! However, we could not send a confirmation email. Please contact an administrator.', 'warning')
+
             return redirect(url_for('login'))
 
     return render_template('register.html', form=form)
+
+
+@app.route('/confirm-email/<token>')
+def confirm_email(token):
+    """Confirm a user's email address."""
+    serializer = get_serializer()
+    try:
+        email = serializer.loads(token, salt='email-confirm', max_age=86400)  # 24 hour expiry
+    except SignatureExpired:
+        flash('The confirmation link has expired. Please register again.', 'danger')
+        return redirect(url_for('register'))
+    except BadSignature:
+        flash('Invalid confirmation link.', 'danger')
+        return redirect(url_for('register'))
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash('Invalid confirmation link.', 'danger')
+        return redirect(url_for('register'))
+
+    if user.email_confirmed:
+        flash('Email already confirmed. Please log in.', 'info')
+        return redirect(url_for('login'))
+
+    user.email_confirmed = True
+    user.email_confirmed_at = datetime.utcnow()
+    db.session.commit()
+
+    AuditLog.log('email_confirmed', 'user', user.id, f'Email confirmed for {user.email}')
+    flash('Your email has been confirmed! You can now log in.', 'success')
+    return redirect(url_for('login'))
+
+
+@app.route('/resend-confirmation', methods=['GET', 'POST'])
+@limiter.limit("3 per minute")
+def resend_confirmation():
+    """Resend confirmation email."""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+
+    form = ForgotPasswordForm()  # Reuse the email-only form
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data.lower()).first()
+        if user and not user.email_confirmed:
+            try:
+                serializer = get_serializer()
+                token = serializer.dumps(user.email, salt='email-confirm')
+                confirm_url = url_for('confirm_email', token=token, _external=True)
+
+                msg = Message(
+                    'Confirm Your Email - WA Charters CRM',
+                    recipients=[user.email]
+                )
+                msg.body = f'''Hello {user.name},
+
+Please click the link below to confirm your email address (valid for 24 hours):
+{confirm_url}
+
+If you did not request this, please ignore this email.
+
+- WA Charters CRM Team
+'''
+                mail.send(msg)
+                AuditLog.log('resend_confirmation', 'user', user.id, f'Confirmation email resent to {user.email}')
+            except Exception as e:
+                AuditLog.log('resend_confirmation_failed', 'user', user.id, f'Failed to resend confirmation: {str(e)}')
+
+        # Always show success to prevent email enumeration
+        flash('If an unconfirmed account exists with that email, a new confirmation link has been sent.', 'info')
+        return redirect(url_for('login'))
+
+    return render_template('resend_confirmation.html', form=form)
 
 
 @app.route('/logout')

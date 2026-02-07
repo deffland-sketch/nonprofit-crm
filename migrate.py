@@ -48,12 +48,10 @@ def migrate():
         if 'role' not in user_columns:
             print("Adding 'role' column to User table...")
             if is_sqlite:
-                # SQLite requires a different approach
                 db.session.execute(db.text(
                     "ALTER TABLE user ADD COLUMN role VARCHAR(20) DEFAULT 'viewer' NOT NULL"
                 ))
             else:
-                # PostgreSQL
                 db.session.execute(db.text(
                     "ALTER TABLE \"user\" ADD COLUMN role VARCHAR(20) DEFAULT 'viewer' NOT NULL"
                 ))
@@ -69,6 +67,29 @@ def migrate():
                 print(f"  {first_user.email} is now an admin!")
         else:
             print("  'role' column already exists.")
+
+        # Check if 'email_confirmed' column exists
+        if 'email_confirmed' not in user_columns:
+            print("Adding 'email_confirmed' column to User table...")
+            if is_sqlite:
+                db.session.execute(db.text(
+                    "ALTER TABLE user ADD COLUMN email_confirmed BOOLEAN DEFAULT 1 NOT NULL"
+                ))
+                db.session.execute(db.text(
+                    "ALTER TABLE user ADD COLUMN email_confirmed_at DATETIME"
+                ))
+            else:
+                db.session.execute(db.text(
+                    "ALTER TABLE \"user\" ADD COLUMN email_confirmed BOOLEAN DEFAULT TRUE NOT NULL"
+                ))
+                db.session.execute(db.text(
+                    "ALTER TABLE \"user\" ADD COLUMN email_confirmed_at TIMESTAMP"
+                ))
+            db.session.commit()
+            print("  'email_confirmed' columns added successfully!")
+            print("  Note: Existing users are marked as confirmed.")
+        else:
+            print("  'email_confirmed' column already exists.")
 
         # Check if AuditLog table exists
         if 'audit_log' not in inspector.get_table_names():
