@@ -14,8 +14,9 @@ from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from flask_wtf import FlaskForm
+from flask_wtf import FlaskForm, CSRFProtect
 from flask_wtf.file import FileField, FileRequired, FileAllowed
+from flask_wtf.csrf import generate_csrf
 from wtforms import StringField, PasswordField, TextAreaField, DecimalField, DateField, SelectField, BooleanField
 from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, ValidationError
 from openpyxl import load_workbook
@@ -39,6 +40,13 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
+csrf = CSRFProtect(app)
+
+
+# Make csrf_token available in all templates
+@app.context_processor
+def inject_csrf_token():
+    return dict(csrf_token=generate_csrf)
 
 # Rate limiting
 limiter = Limiter(
