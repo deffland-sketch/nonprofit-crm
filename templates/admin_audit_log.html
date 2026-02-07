@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log - WA Charters CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-journal-text me-2"></i>Audit Log</h1>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Action</label>
+                <select name="action" class="form-select">
+                    <option value="">All Actions</option>
+                    {% for action in actions %}
+                    <option value="{{ action }}" {% if filters.action == action %}selected{% endif %}>
+                        {{ action|replace('_', ' ')|title }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">User</label>
+                <select name="user_id" class="form-select">
+                    <option value="">All Users</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if filters.user_id == user.id|string %}selected{% endif %}>
+                        {{ user.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <a href="{{ url_for('admin_audit_log') }}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        <table class="table table-hover table-sm">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Resource</th>
+                    <th>Details</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs.items %}
+                <tr>
+                    <td class="text-nowrap">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ log.user.name if log.user else 'Anonymous' }}</td>
+                    <td>
+                        <span class="badge
+                            {% if log.action == 'login' %}bg-success
+                            {% elif log.action == 'logout' %}bg-info
+                            {% elif log.action == 'login_failed' %}bg-danger
+                            {% elif log.action == 'delete' %}bg-danger
+                            {% elif log.action == 'create' %}bg-primary
+                            {% elif log.action == 'edit' %}bg-warning text-dark
+                            {% elif log.action == 'export' %}bg-secondary
+                            {% else %}bg-light text-dark{% endif %}">
+                            {{ log.action|replace('_', ' ')|title }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if log.resource_type %}
+                        {{ log.resource_type|title }}
+                        {% if log.resource_id %}#{{ log.resource_id }}{% endif %}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="small">{{ log.details or '-' }}</td>
+                    <td class="small text-muted">{{ log.ip_address or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No audit log entries found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        {% if logs.pages > 1 %}
+        <nav class="mt-3">
+            <ul class="pagination justify-content-center mb-0">
+                {% if logs.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin_audit_log', page=logs.prev_num, action=filters.action, user_id=filters.user_id) }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for page_num in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == logs.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('admin_audit_log', page=page_num, action=filters.action, user_id=filters.user_id) }}">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if logs.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin_audit_log', page=logs.next_num, action=filters.action, user_id=filters.user_id) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

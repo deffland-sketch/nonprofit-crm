@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - WA Charters CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-people-fill me-2"></i>User Management</h1>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        <span class="badge {% if user.role == 'admin' %}bg-danger{% elif user.role == 'editor' %}bg-primary{% else %}bg-secondary{% endif %}">
+                            {{ user.role|title }}
+                        </span>
+                    </td>
+                    <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('update_user_role', user_id=user.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <select name="role" class="form-select form-select-sm d-inline-block w-auto" onchange="this.form.submit()">
+                                {% for role in User.ROLES %}
+                                <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>
+                                    {{ role|title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Role Permissions</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Permission</th>
+                        <th class="text-center">Viewer</th>
+                        <th class="text-center">Editor</th>
+                        <th class="text-center">Admin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>View donors, donations, communications</td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Create/edit donors, donations, tasks</td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Delete records</td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Import/export data</td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Manage users & view audit log</td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -27,6 +27,7 @@
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
                         {{ form.email(class="form-control", placeholder="you@wacharters.org") }}
+                        <div class="form-text">Only @wacharters.org emails can register.</div>
                         {% if form.email.errors %}
                             <div class="text-danger small">{{ form.email.errors[0] }}</div>
                         {% endif %}
@@ -34,7 +35,7 @@
 
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
-                        {{ form.password(class="form-control", placeholder="At least 6 characters") }}
+                        {{ form.password(class="form-control", placeholder="At least 8 characters") }}
                         {% if form.password.errors %}
                             <div class="text-danger small">{{ form.password.errors[0] }}</div>
                         {% endif %}
